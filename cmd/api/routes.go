@@ -5,10 +5,14 @@ import (
 
 	"github.com/Lockps/Forres-release-version/cmd/database"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func (app *application) routes() http.Handler {
 	mux := chi.NewRouter()
+
+	mux.Use(middleware.Recoverer)
+	mux.Use(app.enableCORS)
 
 	mux.Get("/", app.FirstPage)
 	mux.Post("/getdata", app.postDataHandler)
@@ -20,6 +24,5 @@ func (app *application) routes() http.Handler {
 	mux.Post("/testpostbooking", database.AddBookingToDB)
 	mux.Get("/testgetbooking", database.GetUnAvaliableSeat)
 
-	mux.Post("/testapifb", database.AddBookingToDB)
 	return mux
 }
