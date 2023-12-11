@@ -1,6 +1,7 @@
 package database
 
 type DBName struct {
+	Secure   string
 	Admin    string
 	Staff    string
 	Customer string
@@ -11,6 +12,7 @@ var dbname DBName
 
 func Init() {
 	dbname = DBName{
+		Secure:   "Secure",
 		Admin:    "Admin",
 		Staff:    "Staff",
 		Customer: "Customer",
@@ -30,6 +32,9 @@ func GetLocation(permission int) string {
 	}
 	if permission == 3 {
 		return dbname.Admin
+	}
+	if permission == 4 {
+		return dbname.Secure
 	}
 
 	return ""

@@ -5,7 +5,7 @@ run: build
 	@./bin/forres
 
 test:
-
+	@go test ./cmd/test
 
 
 # User

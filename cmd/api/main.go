@@ -10,7 +10,17 @@ type application struct {
 	port   string
 }
 
+var key = make([]byte, 32)
+
 func main() {
+
+	// fmt.Println(key)
+	// Encoder(0, key)
+	// DeCoder(0, key)
+
+	// EncoderBase64(0)
+	// DecoderBase64(0)
+
 	var app application
 	// app.Test()
 
@@ -18,6 +28,7 @@ func main() {
 	log.Println("Starting application on port :", app.port)
 
 	err := http.ListenAndServe(app.port, app.routes())
+
 	if err != nil {
 		log.Fatal(err.Error())
 	}
