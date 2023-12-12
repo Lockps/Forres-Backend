@@ -66,7 +66,7 @@ func (app *application) routes() http.Handler {
 		http.Error(w, "Invalid request body", http.StatusUnauthorized)
 	})
 
-	r.Post("/Booking/{username}", func(w http.ResponseWriter, r *http.Request) {
+	r.Post("/Booking/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
@@ -75,11 +75,11 @@ func (app *application) routes() http.Handler {
 		username := chi.URLParam(r, "username")
 
 		// Retrieve the token from the Authorization header
-		tokenString := r.Header.Get("Authorization")
-		if tokenString == "" {
-			http.Error(w, "Unauthorized: Token not provided", http.StatusUnauthorized)
-			return
-		}
+		// tokenString := r.Header.Get("Authorization")
+		// if tokenString == "" {
+		// 	http.Error(w, "Unauthorized: Token not provided", http.StatusUnauthorized)
+		// 	return
+		// }
 
 		_, claims, err := jwtauth.FromContext(r.Context())
 		if err != nil {
@@ -124,15 +124,13 @@ func (app *application) routes() http.Handler {
 			return
 		}
 
-		filepath := database.GetLocation(db) + ".db"
-		fmt.Println(filepath)
 		fmt.Println(name)
-		database.DeleteLinesContainingValue(filepath, name)
+		database.DeleteLinesContainingValue(db, name)
 
 		w.Write(function.StrToByteSlice("Delete Successful!"))
 	})
 
-	r.Patch("/update/{db}/{name}/{field}/{data}", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/update/{db}/{name}/{field}/{data}", func(w http.ResponseWriter, r *http.Request) {
 		dbStr := chi.URLParam(r, "db")
 		name := chi.URLParam(r, "name")
 		field := chi.URLParam(r, "field")
@@ -168,7 +166,7 @@ func (app *application) routes() http.Handler {
 
 		table, err := database.ReadFieldsFromDB(2, 1)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Test", http.StatusInternalServerError)
 			return
 		}
 
@@ -179,7 +177,9 @@ func (app *application) routes() http.Handler {
 
 	r.Get("/getbalance/{name}", func(w http.ResponseWriter, r *http.Request) {
 		name := chi.URLParam(r, "name")
-		fmt.Println(database.ReadFieldsFromDB(0, 6))
+		balance, _ := database.GetBalanceByValueFromFile(0, name)
+
+		w.Write([]byte(balance))
 		fmt.Print(name)
 	})
 
@@ -199,12 +199,43 @@ func (app *application) routes() http.Handler {
 
 		for _, obj := range op {
 			if val, ok := obj["field_1"]; ok && val == string(body) {
-				if valurfield7, ok := obj["field_6"]; ok {
+				if valurfield7, ok := obj["field_5"]; ok {
 					w.Write([]byte(valurfield7))
 				}
 			}
 		}
 
+	})
+
+	r.Post("/deleteRecord", func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		fmt.Println(string(body))
+		database.DeleteLineByTable(2, string(body))
+
+		w.Write(function.StrToByteSlice("Delete Success"))
+	})
+
+	r.Post("/topup/{cost}", func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return
+		}
+		cost := chi.URLParam(r, "cost")
+
+		database.UpdateFieldByCondition(0, string(body), 6, cost)
+
+	})
+
+	r.Get("/staff/{name}", func(w http.ResponseWriter, r *http.Request) {
+		name := chi.URLParam(r, "name")
+
+		role, _ := database.GetRoleByValueFromFile(0, name)
+
+		w.Write([]byte(role))
 	})
 
 	return r

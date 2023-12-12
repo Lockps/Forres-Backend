@@ -356,10 +356,6 @@ func GetUnAvaliableSeat(w http.ResponseWriter, r *http.Request) {
 
 //* ======================= DELETE , UPDATE ===========================
 
-func DeleteData(w http.ResponseWriter, r *http.Request) {
-
-}
-
 func ReadDataHandler(w http.ResponseWriter, r *http.Request) {
 	x, _ := ReadAllData(0, 1, 2)
 	w.Write(x)
@@ -436,7 +432,162 @@ func ReadAllline(permission int) ([]byte, error) {
 	return jsonData, nil
 }
 
-func DeleteLinesContainingValue(filepath, value string) error {
+func DeleteLineByTable(permission int, data string) error {
+	filepath := GetLocation(permission) + ".db"
+	file, err := os.OpenFile(filepath, os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var linesToKeep []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Unmarshal JSON line to map
+		var record map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &record); err != nil {
+			return err
+		}
+
+		// Check if "table" field exists and matches the provided value
+		table, exists := record["table"].(float64)
+		if exists && fmt.Sprintf("%.0f", table) == data {
+			continue // Skip this line
+		}
+		linesToKeep = append(linesToKeep, line)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	if err := file.Truncate(0); err != nil {
+		return err
+	}
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return err
+	}
+
+	writer := bufio.NewWriter(file)
+	for _, line := range linesToKeep {
+		_, err := writer.WriteString(line + "\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := writer.Flush(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteLineV2(permission int, data string) error {
+	filepath := GetLocation(permission) + ".db"
+	file, err := os.OpenFile(filepath, os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var linesToKeep []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Unmarshal JSON line to map
+		var record map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &record); err != nil {
+			return err
+		}
+
+		// Check if "name" field exists and matches the provided value
+		name, exists := record["name"].(string)
+		if exists && name == data {
+			continue // Skip this line
+		}
+		linesToKeep = append(linesToKeep, line)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	if err := file.Truncate(0); err != nil {
+		return err
+	}
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return err
+	}
+
+	writer := bufio.NewWriter(file)
+	for _, line := range linesToKeep {
+		_, err := writer.WriteString(line + "\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := writer.Flush(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteLine(permission int, value string) error {
+	filepath := GetLocation(permission) + ".db"
+	file, err := os.OpenFile(filepath, os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	lines := []string{}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		fields := strings.Fields(line)
+		if len(fields) > 1 && fields[1] != "name:"+value { // Check the 'name' field against the given value
+			lines = append(lines, line)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	if err := file.Truncate(0); err != nil {
+		return err
+	}
+
+	if _, err := file.Seek(0, 0); err != nil {
+		return err
+	}
+
+	writer := bufio.NewWriter(file)
+	for _, line := range lines {
+		_, err := writer.WriteString(line + "\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := writer.Flush(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteLinesContainingValue(permission int, value string) error {
+	filepath := GetLocation(permission) + ".db"
 	file, err := os.OpenFile(filepath, os.O_RDWR, 0644)
 	if err != nil {
 		return err
@@ -499,7 +650,7 @@ func UpdateFieldByCondition(permission int, field2Value string, fieldToUpdate in
 		line := scanner.Text()
 		fields := strings.Fields(line)
 
-		if len(fields) > 2 && fields[2] == field2Value {
+		if len(fields) > 2 && fields[1] == field2Value {
 			if len(fields) > fieldToUpdate {
 				fields[fieldToUpdate] = newData
 			}
@@ -650,4 +801,56 @@ func ReadAndReturnString(permission int) (string, error) {
 	}
 
 	return result, nil
+}
+
+func GetBalanceByValueFromFile(permission int, valueToMatch string) (string, error) {
+	filepath := GetLocation(permission) + ".db"
+	file, err := os.Open(filepath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+
+		// Check if the length of fields is at least 7 (field[6] exists)
+		if len(fields) >= 7 && fields[1] == valueToMatch {
+			return fields[6], nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
+	return "", fmt.Errorf("Field not found or value does not match")
+}
+
+func GetRoleByValueFromFile(permission int, valueToMatch string) (string, error) {
+	filepath := GetLocation(permission) + ".db"
+	file, err := os.Open(filepath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+
+		// Check if the length of fields is at least 7 (field[6] exists)
+		if len(fields) >= 7 && fields[1] == valueToMatch {
+			return fields[7], nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
+	return "", fmt.Errorf("Field not found or value does not match")
 }

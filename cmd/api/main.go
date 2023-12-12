@@ -13,8 +13,6 @@ type application struct {
 var key = make([]byte, 32)
 
 func main() {
-
-	// fmt.Println(key)
 	// Encoder(0, key)
 	// DeCoder(0, key)
 
